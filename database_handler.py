@@ -1,7 +1,6 @@
 import pandas as pd
 import psycopg2
 
-
 def insert_data(data,config):
     conn = None
     try:
@@ -20,8 +19,8 @@ def insert_data(data,config):
                     INSERT INTO "Scraped_data".Raw (
                         hotel_name, hotel_country, hotel_region, hotel_city,
                         hotel_category, stay_duration, price, departure_city,
-                        departure_date, return_date, tour_operator_name, rating_value
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        departure_date, return_date, tour_operator_name, rating_value,created_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 df = pd.DataFrame(data)
 

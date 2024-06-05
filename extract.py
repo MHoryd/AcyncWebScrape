@@ -2,6 +2,7 @@ import asyncio
 import json
 import aiohttp
 from bs4 import BeautifulSoup as BS
+import datetime
 
 
 async def async_request_fetch_scrape_dictionary(session, country, page, operator):
@@ -71,6 +72,7 @@ def process_extracted_data(extracted_data):
                 offer["return_date"]=raw_offer["returnDate"]
                 offer["tour_operator_name"]=raw_offer["tourOperatorName"]
                 offer["rating_value"]= raw_offer["ratingValue"]
+                offer["created_at"]= datetime.datetime.now()
                 offers_list.append(offer)
         except KeyError:
             pass
