@@ -16,7 +16,7 @@ def insert_data(data,config):
 
 
                 insert_query = """
-                    INSERT INTO "Scraped_data".Raw (
+                    INSERT INTO scraped_data.raw (
                         hotel_name, hotel_country, hotel_region, hotel_city,
                         hotel_category, stay_duration, price, departure_city,
                         departure_date, return_date, tour_operator_name, rating_value,created_at
