@@ -4,7 +4,6 @@ import extract
 import database_handler
 
 async def process_item(item):
-    print(item)
     initial_data = await extract.get_initial_scraping_dictionary(item)
     data_to_scrape = extract.get_offers_num(initial_data)
     final_data = await extract.get_final_scrape_data(data_to_scrape, config.tour_operators)
