@@ -1,26 +1,38 @@
 import asyncio
 import json
 import aiohttp
-from aiohttp import ClientSession
 from bs4 import BeautifulSoup as BS
 import datetime
+import logging
 
 REQUESTS_PER_SECOND = 3
-MAX_RETRIES = 3
+MAX_RETRIES = 3 
 semaphore = asyncio.Semaphore(REQUESTS_PER_SECOND)
+global used_url
+used_url = []
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def fetch(session, url):
-    for attempt in range(MAX_RETRIES):
-        try:
-            async with session.get(url) as response:
-                await asyncio.sleep(1 / REQUESTS_PER_SECOND)
-                return await response.text()
-        except aiohttp.ClientError as e:
-            if attempt < MAX_RETRIES - 1:
-                await asyncio.sleep(2 ** attempt)
-                continue
-            else:
-                raise e
+    if url not in used_url:
+        for attempt in range(MAX_RETRIES):
+            used_url.append(url)
+            try:
+                async with session.get(url) as response:
+                    await asyncio.sleep(1 / REQUESTS_PER_SECOND)
+                    if response.status == 200:
+                        return await response.text()
+                    else:
+                        logging.warning(f"Failed to fetch {url}, status code: {response.status}")
+            except aiohttp.ClientError as e:
+                logging.error(f"Request error for {url}: {e}")
+                if attempt < MAX_RETRIES - 1:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                else:
+                    raise e
+        return None
 
 async def async_request_fetch_scrape_dictionary(session, country, page, operator):
     url = f'https://www.wakacje.pl/wczasy/{country}/?str-{page},1-28-dni,samolotem,all-inclusive,2-gwiazdkowe,ocena-6,{operator},z-warszawy'
@@ -32,7 +44,9 @@ async def get_initial_scraping_dictionary(item):
         data = []
         async with semaphore:
             url = f'https://www.wakacje.pl/wczasy/{item[0]}/?str-1,1-28-dni,samolotem,all-inclusive,2-gwiazdkowe,ocena-6,{item[1]},z-warszawy'
-            data.append(await fetch(session, url))
+            page_content = await fetch(session, url)
+            if page_content:
+                data.append(page_content)
         return data
 
 async def get_final_scrape_data(scraping_dictionary, operators):
@@ -40,7 +54,8 @@ async def get_final_scrape_data(scraping_dictionary, operators):
         tasks = []
         for operator in operators:
             tasks.extend([async_request_fetch_scrape_dictionary(session, item[0], item[1], operator) for item in scraping_dictionary])
-        return await asyncio.gather(*tasks, return_exceptions=False)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return [result for result in results if result is not None]
 
 def get_offers_num(raw_data):
     offer_num_country_list = []
@@ -53,12 +68,7 @@ def get_offers_num(raw_data):
         json_object = json.loads(json_data.text)
         offers_num = json_object['props']['stores']['storeOffers']['offers']["count"]
         offers_country = json_object['props']['stores']['storeAnalytics']['_contentGroupObject']['1'].lower()
-        if (offers_num/10) > 100:
-            offers_num=100
-        elif offers_num % 10 == 0:
-            offers_num = int(offers_num / 10)
-        else:
-            offers_num = int(offers_num / 10)+1
+        offers_num = min(100, (offers_num + 9) // 10)
         for i in range(1, offers_num + 1):
             offer_num_country_list.append([offers_country, i])
     return offer_num_country_list
@@ -70,8 +80,10 @@ def process_extracted_data(extracted_data):
     for page in extracted_data:
         soup_object = BS(page, 'html.parser')
         json_data = soup_object.find('script', id="__NEXT_DATA__")
-        json_object = json.loads(json_data.text)
+        if not json_data:
+            continue
 
+        json_object = json.loads(json_data.text)
         try:
             for raw_offer in json_object['props']['stores']['storeOffers']['offers']['data']:
                 offer_identifier = (
@@ -80,7 +92,7 @@ def process_extracted_data(extracted_data):
                     raw_offer["returnDate"],
                     raw_offer["price"],
                     raw_offer["tourOperatorName"]
-                ) 
+                )
 
                 if offer_identifier in seen_offers:
                     continue
@@ -103,14 +115,11 @@ def process_extracted_data(extracted_data):
 
                 seen_offers.add(offer_identifier)
                 offers_list.append(offer)
-        except KeyError:
-            pass
+        except KeyError as e:
+            logging.error(f"KeyError processing data: {e}")
 
     return offers_list
 
 def build_countires_operators_list(countries, operators):
-    scraping_list = []
-    for country in countries:
-        for operator in operators:
-            scraping_list.append((country, operator))
+    scraping_list = [(country, operator) for country in countries for operator in operators]
     return scraping_list

@@ -12,8 +12,8 @@ async def process_item(item):
 
 async def main():
     scraping_list = extract.build_countires_operators_list(config.countries_list, config.tour_operators)
-    for item in scraping_list:
-        await process_item(item)
+    tasks = [process_item(item) for item in scraping_list]
+    await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())
