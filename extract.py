@@ -65,29 +65,47 @@ def get_offers_num(raw_data):
 
 def process_extracted_data(extracted_data):
     offers_list = []
+    seen_offers = set()
+
     for page in extracted_data:
         soup_object = BS(page, 'html.parser')
         json_data = soup_object.find('script', id="__NEXT_DATA__")
         json_object = json.loads(json_data.text)
+
         try:
             for raw_offer in json_object['props']['stores']['storeOffers']['offers']['data']:
-                offer = {}
-                offer["hotel_name"] = raw_offer["name"]
-                offer["hotel_country"] = raw_offer["place"]["country"]["name"]
-                offer["hotel_region"] = raw_offer["place"]["region"]["name"]
-                offer["hotel_city"] = raw_offer["place"]["city"]["name"]
-                offer["hotel_category"] = raw_offer["category"]
-                offer["stay_duration"] = raw_offer["duration"]
-                offer["price"] = raw_offer["price"]
-                offer["departure_city"] = raw_offer["departurePlace"]
-                offer["departure_date"] = raw_offer["departureDate"]
-                offer["return_date"] = raw_offer["returnDate"]
-                offer["tour_operator_name"] = raw_offer["tourOperatorName"]
-                offer["rating_value"] = raw_offer["ratingValue"]
-                offer["created_at"] = datetime.datetime.now()
+                offer_identifier = (
+                    raw_offer["name"],
+                    raw_offer["departureDate"],
+                    raw_offer["returnDate"],
+                    raw_offer["price"],
+                    raw_offer["tourOperatorName"]
+                ) 
+
+                if offer_identifier in seen_offers:
+                    continue
+
+                offer = {
+                    "hotel_name": raw_offer["name"],
+                    "hotel_country": raw_offer["place"]["country"]["name"],
+                    "hotel_region": raw_offer["place"]["region"]["name"],
+                    "hotel_city": raw_offer["place"]["city"]["name"],
+                    "hotel_category": raw_offer["category"],
+                    "stay_duration": raw_offer["duration"],
+                    "price": raw_offer["price"],
+                    "departure_city": raw_offer["departurePlace"],
+                    "departure_date": raw_offer["departureDate"],
+                    "return_date": raw_offer["returnDate"],
+                    "tour_operator_name": raw_offer["tourOperatorName"],
+                    "rating_value": raw_offer["ratingValue"],
+                    "created_at": datetime.datetime.now()
+                }
+
+                seen_offers.add(offer_identifier)
                 offers_list.append(offer)
         except KeyError:
             pass
+
     return offers_list
 
 def build_countires_operators_list(countries, operators):
