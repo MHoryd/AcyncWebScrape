@@ -1,27 +1,38 @@
 import asyncio
 import json
 import aiohttp
+from aiohttp import ClientSession
 from bs4 import BeautifulSoup as BS
 import datetime
 
-REQUESTS_PER_SECOND = 5
+REQUESTS_PER_SECOND = 3
+MAX_RETRIES = 3
 semaphore = asyncio.Semaphore(REQUESTS_PER_SECOND)
+
+async def fetch(session, url):
+    for attempt in range(MAX_RETRIES):
+        try:
+            async with session.get(url) as response:
+                await asyncio.sleep(1 / REQUESTS_PER_SECOND)
+                return await response.text()
+        except aiohttp.ClientError as e:
+            if attempt < MAX_RETRIES - 1:
+                await asyncio.sleep(2 ** attempt)
+                continue
+            else:
+                raise e
 
 async def async_request_fetch_scrape_dictionary(session, country, page, operator):
     url = f'https://www.wakacje.pl/wczasy/{country}/?str-{page},1-28-dni,samolotem,all-inclusive,2-gwiazdkowe,ocena-6,{operator},z-warszawy'
     async with semaphore:
-        async with session.get(url) as response:
-            await asyncio.sleep(1 / REQUESTS_PER_SECOND)  # Ensure the rate limit
-            return await response.text()
+        return await fetch(session, url)
 
 async def get_initial_scraping_dictionary(item):
     async with aiohttp.ClientSession() as session:
         data = []
         async with semaphore:
             url = f'https://www.wakacje.pl/wczasy/{item[0]}/?str-1,1-28-dni,samolotem,all-inclusive,2-gwiazdkowe,ocena-6,{item[1]},z-warszawy'
-            async with session.get(url) as response:
-                await asyncio.sleep(1 / REQUESTS_PER_SECOND)  # Ensure the rate limit
-                data.append(await response.text())
+            data.append(await fetch(session, url))
         return data
 
 async def get_final_scrape_data(scraping_dictionary, operators):
