@@ -66,7 +66,10 @@ def get_offers_num(raw_data):
             continue
         json_data = soup_object.find('script', id="__NEXT_DATA__")
         json_object = json.loads(json_data.text)
-        offers_num = json_object['props']['stores']['storeOffers']['offers']["count"]
+        try:
+            offers_num = json_object['props']['stores']['storeOffers']['offers']["count"]
+        except KeyError:
+            logging.info(f"Didn't found offer num for: {json_object['props']['path']}")
         offers_country = json_object['props']['stores']['storeAnalytics']['_contentGroupObject']['1'].lower()
         offers_num = min(100, (offers_num + 9) // 10)
         for i in range(1, offers_num + 1):
