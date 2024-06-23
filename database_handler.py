@@ -1,5 +1,6 @@
 import pandas as pd
 import psycopg2
+import sys
 
 def insert_data(data,config):
     conn = None
@@ -23,9 +24,12 @@ def insert_data(data,config):
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 df = pd.DataFrame(data)
-
+                df['hotel_country'] =  df['hotel_country'].astype('category')
+                df['hotel_category'] =  df['hotel_category'].astype('category')
+                df['departure_city'] =  df['departure_city'].astype('category')
+                df['tour_operator_name'] =  df['tour_operator_name'].astype('category')
+                df['rating_value'] =  df['rating_value'].astype('category')
                 insert_data = df.values.tolist()
-
                 cur.executemany(insert_query, insert_data)
 
     except(Exception, psycopg2.DatabaseError) as error:
