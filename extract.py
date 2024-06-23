@@ -69,6 +69,7 @@ def get_offers_num(raw_data):
         try:
             offers_num = json_object['props']['stores']['storeOffers']['offers']["count"]
         except KeyError:
+            continue
             logging.info(f"Didn't found offer num for: {json_object['props']['path']}")
         offers_country = json_object['props']['stores']['storeAnalytics']['_contentGroupObject']['1'].lower()
         offers_num = min(100, (offers_num + 9) // 10)
