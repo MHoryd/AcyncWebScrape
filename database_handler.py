@@ -1,8 +1,10 @@
 import pandas as pd
 import psycopg2
-import sys
+import csv
+import os
 
-def insert_data(data,config):
+
+def insert_data(csv_file,config):
     conn = None
     try:
         with  psycopg2.connect(
@@ -23,7 +25,7 @@ def insert_data(data,config):
                         departure_date, return_date, tour_operator_name, rating_value,created_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                df = pd.DataFrame(data)
+                df = pd.read_csv(csv_file)
                 df['hotel_country'] =  df['hotel_country'].astype('category')
                 df['hotel_category'] =  df['hotel_category'].astype('category')
                 df['departure_city'] =  df['departure_city'].astype('category')
@@ -37,3 +39,22 @@ def insert_data(data,config):
     finally:
         if conn is not None:
             conn.close()
+
+
+def dump_data_to_csv(data, filename):
+
+    file_exists = os.path.isfile(filename)
+    headers = data[0].keys()
+    
+    with open(filename, 'a', newline='', encoding='utf=8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
+        
+        if not file_exists:
+            writer.writeheader()
+        
+        for row in data:
+            writer.writerow(row)
+
+
+def delete_temp_csv(filename):
+    os.remove(filename)

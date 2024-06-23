@@ -15,7 +15,6 @@ used_url = []
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def fetch(session, url):
-    logging.info(url)
     if url not in used_url:
         for attempt in range(MAX_RETRIES):
             used_url.append(url)

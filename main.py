@@ -8,12 +8,15 @@ async def process_item(item):
     data_to_scrape = extract.get_offers_num(initial_data)
     final_data = await extract.get_final_scrape_data(data_to_scrape, config.tour_operators)
     processed_data = extract.process_extracted_data(final_data)
-    database_handler.insert_data(processed_data, config)
+    if processed_data:
+        database_handler.dump_data_to_csv(processed_data, 'temp_data.csv')
 
 async def main():
     scraping_list = extract.build_countires_operators_list(config.countries_list, config.tour_operators)
     tasks = [process_item(item) for item in scraping_list]
     await asyncio.gather(*tasks)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
+
+database_handler.insert_data('temp_data.csv',config)
+database_handler.delete_temp_csv('temp_data.csv')
