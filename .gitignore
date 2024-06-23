@@ -161,3 +161,4 @@ cython_debug/
 
 *.yaml
 *.json
+log.txt
