@@ -68,13 +68,13 @@ def get_offers_num(raw_data):
         json_object = json.loads(json_data.text)
         try:
             offers_num = json_object['props']['stores']['storeOffers']['offers']["count"]
+            offers_country = json_object['props']['stores']['storeAnalytics']['_contentGroupObject']['1'].lower()
+            offers_num = min(100, (offers_num + 9) // 10)
+            for i in range(1, offers_num + 1):
+                offer_num_country_list.append([offers_country, i])
         except KeyError:
             logging.info(f"Didn't found offer num for: {json_object['props']['path']}")
             continue
-        offers_country = json_object['props']['stores']['storeAnalytics']['_contentGroupObject']['1'].lower()
-        offers_num = min(100, (offers_num + 9) // 10)
-        for i in range(1, offers_num + 1):
-            offer_num_country_list.append([offers_country, i])
     return offer_num_country_list
 
 def process_extracted_data(extracted_data):

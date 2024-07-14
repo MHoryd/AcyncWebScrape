@@ -162,3 +162,4 @@ cython_debug/
 *.yaml
 *.json
 log.txt
+temp_data.csv
