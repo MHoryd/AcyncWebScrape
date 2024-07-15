@@ -10,3 +10,4 @@ with open('config.yaml', 'r') as file:
     database = config['database']
     port = config['port']
     host = config['host']
+    batch_size = config['Batch_size']

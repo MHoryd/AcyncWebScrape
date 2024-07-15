@@ -11,12 +11,17 @@ async def process_item(item):
     if processed_data:
         database_handler.dump_data_to_csv(processed_data, 'temp_data.csv')
 
-async def main():
-    scraping_list = extract.build_countires_operators_list(config.countries_list, config.tour_operators)
-    tasks = [process_item(item) for item in scraping_list]
+async def process_batch(items):
+    tasks = [process_item(item) for item in items]
     await asyncio.gather(*tasks)
 
-asyncio.run(main())
+async def process_in_batches(all_items, batch_size):
+    for i in range(0,len(all_items), batch_size):
+        batch = all_items[i:i+batch_size]
+        await process_batch(batch)
+
+scraping_list = extract.build_countires_operators_list(config.countries_list, config.tour_operators)
+asyncio.run(process_in_batches(all_items=scraping_list, config = config.batch_size))
 
 database_handler.insert_data('temp_data.csv',config)
 database_handler.delete_temp_csv('temp_data.csv')
