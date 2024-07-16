@@ -114,7 +114,7 @@ def process_extracted_data(extracted_data):
                     "return_date": raw_offer["returnDate"],
                     "tour_operator_name": raw_offer["tourOperatorName"],
                     "rating_value": raw_offer["ratingValue"],
-                    "created_at": datetime.datetime.now()
+                    "created_at": str(datetime.datetime.now())
                 }
 
                 seen_offers.add(offer_identifier)

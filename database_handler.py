@@ -1,10 +1,9 @@
 import pandas as pd
 import psycopg2
-import csv
-import os
+from asynctinydb import TinyDB
+from tinydb import TinyDB as base_tinydb
 
-
-def insert_data(csv_file,config):
+def insert_data(data,config):
     conn = None
     try:
         with  psycopg2.connect(
@@ -25,14 +24,7 @@ def insert_data(csv_file,config):
                         departure_date, return_date, tour_operator_name, rating_value,created_at
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                df = pd.read_csv(csv_file)
-                df['hotel_country'] =  df['hotel_country'].astype('category')
-                df['hotel_category'] =  df['hotel_category'].astype('category')
-                df['departure_city'] =  df['departure_city'].astype('category')
-                df['tour_operator_name'] =  df['tour_operator_name'].astype('category')
-                df['rating_value'] =  df['rating_value'].astype('category')
-                insert_data = df.values.tolist()
-                cur.executemany(insert_query, insert_data)
+                cur.executemany(insert_query, data)
 
     except(Exception, psycopg2.DatabaseError) as error:
         print(error)
@@ -41,20 +33,18 @@ def insert_data(csv_file,config):
             conn.close()
 
 
-def dump_data_to_csv(data, filename):
+async def insert_data_to_tinydb(data):
+    db = TinyDB('db.json')
+    await db.insert_multiple(data)
 
-    file_exists = os.path.isfile(filename)
-    headers = data[0].keys()
+def get_data_from_tinydb():
+    db = base_tinydb('db.json')
+    documents =  db.all()
+    return [dict(doc) for doc in documents] 
     
-    with open(filename, 'a', newline='', encoding='utf=8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=headers)
-        
-        if not file_exists:
-            writer.writeheader()
-        
-        for row in data:
-            writer.writerow(row)
+def clear_tinydb():
+    db = base_tinydb('test.json')
+    db.truncate()
 
-
-def delete_temp_csv(filename):
-    os.remove(filename)
+def convert_to_list_of_values(data):
+    return [list(values.values()) for values in data]

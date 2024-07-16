@@ -9,7 +9,7 @@ async def process_item(item):
     final_data = await extract.get_final_scrape_data(data_to_scrape, config.tour_operators)
     processed_data = extract.process_extracted_data(final_data)
     if processed_data:
-        database_handler.dump_data_to_csv(processed_data, 'temp_data.csv')
+        await database_handler.insert_data_to_tinydb(processed_data)
 
 async def process_batch(items):
     tasks = [process_item(item) for item in items]
@@ -21,7 +21,9 @@ async def process_in_batches(all_items, batch_size):
         await process_batch(batch)
 
 scraping_list = extract.build_countires_operators_list(config.countries_list, config.tour_operators)
-asyncio.run(process_in_batches(all_items=scraping_list, config = config.batch_size))
+asyncio.run(process_in_batches(all_items=scraping_list, batch_size = config.batch_size))
 
-database_handler.insert_data('temp_data.csv',config)
-database_handler.delete_temp_csv('temp_data.csv')
+data = database_handler.get_data_from_tinydb()
+processed_data = database_handler.convert_to_list_of_values(data)
+database_handler.insert_data(processed_data,config)
+database_handler.clear_tinydb()
