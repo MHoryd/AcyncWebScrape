@@ -1,7 +1,8 @@
-import pandas as pd
+import config
 import psycopg2
 from asynctinydb import TinyDB
 from tinydb import TinyDB as base_tinydb
+import os
 
 def insert_data(data,config):
     conn = None
@@ -34,16 +35,16 @@ def insert_data(data,config):
 
 
 async def insert_data_to_tinydb(data):
-    db = TinyDB('db.json')
+    db = TinyDB(os.path.join(os.getcwd(), config.db))
     await db.insert_multiple(data)
 
 def get_data_from_tinydb():
-    db = base_tinydb('db.json')
+    db = base_tinydb(os.path.join(os.getcwd(), config.db))
     documents =  db.all()
     return [dict(doc) for doc in documents] 
     
 def clear_tinydb():
-    db = base_tinydb('test.json')
+    db = base_tinydb(os.path.join(os.getcwd(), config.db))
     db.truncate()
 
 def convert_to_list_of_values(data):
