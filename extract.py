@@ -9,7 +9,7 @@ REQUESTS_PER_SECOND = 3
 MAX_RETRIES = 3 
 semaphore = asyncio.Semaphore(REQUESTS_PER_SECOND)
 global used_url
-used_url = []
+used_url = set()
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 async def fetch(session, url):
     if url not in used_url:
         for attempt in range(MAX_RETRIES):
-            used_url.append(url)
+            used_url.add(url)
             try:
                 async with session.get(url) as response:
                     await asyncio.sleep(1 / REQUESTS_PER_SECOND)
@@ -100,22 +100,11 @@ def process_extracted_data(extracted_data):
 
                 if offer_identifier in seen_offers:
                     continue
-
-                offer = {
-                    "hotel_name": raw_offer["name"],
-                    "hotel_country": raw_offer["place"]["country"]["name"],
-                    "hotel_region": raw_offer["place"]["region"]["name"],
-                    "hotel_city": raw_offer["place"]["city"]["name"],
-                    "hotel_category": raw_offer["category"],
-                    "stay_duration": raw_offer["duration"],
-                    "price": raw_offer["price"],
-                    "departure_city": raw_offer["departurePlace"],
-                    "departure_date": raw_offer["departureDate"],
-                    "return_date": raw_offer["returnDate"],
-                    "tour_operator_name": raw_offer["tourOperatorName"],
-                    "rating_value": raw_offer["ratingValue"],
-                    "created_at": str(datetime.datetime.now())
-                }
+                # shema is: hotel_name,hotel_country,hotel_region,hotel_city,hotel_category,stay_duration,price,departure_city,departure_date,return_date,tour_operator_name,rating_value,created_at
+                offer = (raw_offer["name"],raw_offer["place"]["country"]["name"],raw_offer["place"]["region"]["name"],raw_offer["place"]["city"]["name"],
+                    raw_offer["category"],raw_offer["duration"],raw_offer["price"],raw_offer["departurePlace"],raw_offer["departureDate"],
+                    raw_offer["returnDate"],raw_offer["tourOperatorName"],raw_offer["ratingValue"],str(datetime.datetime.now())
+                )
 
                 seen_offers.add(offer_identifier)
                 offers_list.append(offer)
