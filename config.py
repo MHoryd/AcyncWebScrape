@@ -11,4 +11,5 @@ with open('config.yaml', 'r') as file:
     port = config['port']
     host = config['host']
     batch_size = config['Batch_size']
-    db = config['Db']
+    csvfile = config['csvfile']
+    

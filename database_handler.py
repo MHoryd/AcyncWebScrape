@@ -1,51 +1,41 @@
-import config
 import psycopg2
-from asynctinydb import TinyDB
-from tinydb import TinyDB as base_tinydb
+import csv
 import os
+import pandas as pd
+from sqlalchemy import create_engine
 
-def insert_data(data,config):
-    conn = None
-    try:
-        with  psycopg2.connect(
-            host=config.host,
-            port=config.port,
-            database=config.database,
-            user=config.db_user,
-            password=config.db_password
-            ) as conn:
+def insert_data(df,config):
+    try:    
+        connection_url = f'postgresql+psycopg2://{config.db_user}:{config.db_password}@{config.host}:{config.port}/{config.database}'
+        engine = create_engine(connection_url)
+        with engine.connect() as connection:
+            df.to_sql(con=connection,schema='scraped_data',name='raw', if_exists='replace')
+    except Exception as e:
+            print(e)
 
-            with conn.cursor() as cur:
+def dump_data_to_csv(data, filename):
 
-
-                insert_query = """
-                    INSERT INTO scraped_data.raw (
-                        hotel_name, hotel_country, hotel_region, hotel_city,
-                        hotel_category, stay_duration, price, departure_city,
-                        departure_date, return_date, tour_operator_name, rating_value,created_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                cur.executemany(insert_query, data)
-
-    except(Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
-
-
-async def insert_data_to_tinydb(data):
-    db = TinyDB(os.path.join(os.getcwd(), config.db))
-    await db.insert_multiple(data)
-
-def get_data_from_tinydb():
-    db = base_tinydb(os.path.join(os.getcwd(), config.db))
-    documents =  db.all()
-    return [dict(doc) for doc in documents] 
+    file_exists = os.path.isfile(filename)
+    headers = ['hotel_name','hotel_country','hotel_region','hotel_city','hotel_category','stay_duration','price','departure_city','departure_date','return_date','tour_operator_name','rating_value','created_at']
     
-def clear_tinydb():
-    db = base_tinydb(os.path.join(os.getcwd(), config.db))
-    db.truncate()
+    with open(filename, 'a', newline='', encoding='utf=8') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        if not file_exists:
+            writer.writerow(headers)
+        
+        for row in data:
+            writer.writerow(row)
 
-def convert_to_list_of_values(data):
-    return [list(values.values()) for values in data]
+
+def get_data_from_csv(filename):
+    df = pd.read_csv(filename)
+    df['hotel_country'] =  df['hotel_country'].astype('category')
+    df['hotel_category'] =  df['hotel_category'].astype('category')
+    df['departure_city'] =  df['departure_city'].astype('category')
+    df['tour_operator_name'] =  df['tour_operator_name'].astype('category')
+    df['rating_value'] =  df['rating_value'].astype('category')
+    return df
+
+def delete_temp_csv(filename):
+    os.remove(filename)
